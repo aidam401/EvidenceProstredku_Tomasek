@@ -1,0 +1,220 @@
+package command;
+
+import static command.InputsLib.*;
+import static generator.GenerujLib.getNahodnyProstredek;
+import java.util.Iterator;
+import java.util.Scanner;
+import kolekce.KolekceException;
+import kolekce.LinSeznam;
+import prostredky.*;
+
+/**
+ *
+ * @author Adam_Tomasek
+ */
+public class CommandLineMain {
+
+    LinSeznam<DopravniProstredek> seznam = new LinSeznam<>();
+
+    public CommandLineMain() {
+    }
+
+    //TODO try catche, oprava vkladani
+    private void start() {
+
+        Scanner sc = new Scanner(System.in);
+        System.out.println("Ovládání z řádku.");
+        String command = "";
+
+        while (!command.equals("exit")) {
+            System.out.println("Vložte příkaz.");
+            command = sc.next();
+
+            switch (command) {
+                case "help":
+                case "h":
+                    vypisHelp();
+                    break;
+
+                case "novy":
+                case "no":
+                    vloz(vytvorProstredek());
+                    System.out.println("Prostředek vložen.");
+                    break;
+
+                case "najdi":
+                case "na":
+                case "n":
+                    String pattern = getString("Vložte hledané spz", 5, 30);
+                    vypis(pattern);
+                    break;
+
+                case "dej":
+                    System.out.println("První prvek:\n "
+                            + this.seznam.dejAktualni());
+                    break;
+
+                case "edituj":
+                case "edit":
+                    System.out.println("Editujete prvek:\n"
+                            + this.seznam.dejAktualni());
+
+                    vloz(vytvorProstredek());
+                    this.seznam.odeberAktualni();
+
+                    break;
+
+                case "vyjmi":
+                    this.seznam.odeberAktualni();
+                    System.out.println("Aktuální prvek odstraněn.");
+                    break;
+
+                case "prvni":
+                case "pr":
+                    this.seznam.nastavPrvni();
+                    System.out.println("První prvek nastaven.");
+                    System.out.println("Aktuální prvek:\n"
+                            + this.seznam.dejAktualni());
+                    break;
+
+                case "dalsi":
+                case "da":
+                    this.seznam.dalsi();
+                    System.out.println("Pointer posunut.");
+                    System.out.println("Aktuální prvek:\n"
+                            + this.seznam.dejAktualni());
+                    break;
+
+                case "posledni":
+                case "po":
+                    this.seznam.nastavPosledni();
+                    System.out.println("Poslední prvek nastaven.");
+                    System.out.println("Aktuální prvek:\n"
+                            + this.seznam.dejAktualni());
+                    break;
+
+                case "pocet":
+                    System.out.println("Seznam obsahuje "
+                            + this.seznam.size() + " prvků.");
+                    System.out.println("Aktuální prvek:\n"
+                            + this.seznam.dejAktualni());
+                    break;
+
+                case "obnov":
+                    break;
+
+                case "zalohuj":
+                    break;
+
+                case "vypis":
+                    vypis();
+
+                case "nactitext":
+                case "nt":
+                    break;
+
+                case "uloztext":
+                case "ut":
+                    break;
+
+                case "generuj":
+                case "g":
+                    vloz(getNahodnyProstredek());
+                    System.out.println("Prostředej vygenerován a vložen.");
+                    break;
+
+                case "zrus":
+                    this.seznam.zrus();
+                    System.out.println("Všechny prvky smazány.");
+                    break;
+
+                case "exit":
+                    System.out.println("Ukončeno");
+                    break;
+
+                default:
+                    System.out.println("Nevalidní vstup.");
+            }
+        }
+    }
+
+    private void vypis() {
+        vypis("");
+    }
+
+    private void vypis(String pattern) {
+        Iterator<DopravniProstredek> iterator = this.seznam.iterator();
+        int counter = 1;
+        while (iterator.hasNext()) {
+            DopravniProstredek next = iterator.next();
+            if (pattern == "" || next.getSpz().equals(pattern)) {
+                System.out.println("[" + counter + "]  " + next);
+            }
+            counter++;
+        }
+
+    }
+
+    private void vloz(DopravniProstredek prostredek) {
+        if (this.seznam.size() == 0) {
+            this.seznam.vlozPrvni(prostredek);
+        } else {
+            try {
+                this.seznam.vlozZaAktualni(prostredek);
+            }catch(KolekceException e){
+                this.seznam.vlozNaKonec(prostredek);
+            }
+
+        }
+    }
+
+    private DopravniProstredek vytvorProstredek() {
+        DodavkaTyp typ = getTyp();
+
+        String spz = getString("Vložte spz pro prostředek", 5, 30);
+        double hmotnost = getDouble("Vložte hmotnost. (desetinné číslo)",
+                150, 10000);
+        int pocetNaprav = pocetNaprav = getInt("Vlozte počet náprav.", 2, 10);
+
+        switch (typ) {
+            case DODAVKA:
+                return new Dodavka(spz, pocetNaprav, hmotnost);
+            case OSOBNI_AUTOMOBIL:
+                Barva barva = getBarva();
+                return new OsobniAutomobil(spz, barva, pocetNaprav, hmotnost);
+            case NAKLADNI_AUTOMOBIL:
+                return new NakladniAutomobil(spz, pocetNaprav, hmotnost);
+            case TRAKTOR:
+                return new Traktor(spz, pocetNaprav, hmotnost);
+
+        }
+        return null;
+
+    }
+
+    private void vypisHelp() {
+        System.out.println("help, h - Výpis příkazů\n"
+                + "novy,no - Vytvoř novou instanci a vlož dopravní prostředek za aktuální.\n"
+                + "najdi,na,n - Najdi v seznamu dopravní prostředek podle státní poznávací značky.\n"
+                + "dej - Zobraz aktuální dopravní prostředek v seznamu.\n"
+                + "edituj,edit - Edituj aktuální dopravní prostředek v seznamu.\n"
+                + "vyjmi - Vyjmi aktuální první dopravní prostředek v seznamu.\n"
+                + "prvni,pr - Nastav jako aktuální první dopravní prostředek v seznamu.\n"
+                + "dalsi,da - Přejdi na další dopravní prostředek.\n"
+                + "posledni,po - Přejdi na poslední dopravní prostředek.\n"
+                + "pocet - Zobraz počet položek v seznamu.\n"
+                + "obnov - Obnov seznam dopravních prostředků z binárního souboru\n"
+                + "zalohuj - Zálohuj seznam dopravních prostředků do binárního souboru\n"
+                + "vypis - Zobraz seznam dopravních prostředků.\n"
+                + "nactitext,nt- Načti seznam dopravních prostředků z textového souboru.\n"
+                + "uloztext,ut - Ulož seznam dopravních prostředků do textového souboru.\n"
+                + "generuj,g - Generuj náhodně dopravní prostředky pro testování.\n"
+                + "zrus - Zruš všechny dopravní prostředky v seznamu\n"
+                + "exit - Ukončení programu");
+    }
+
+    public static void main(String[] args) {
+        CommandLineMain cmd = new CommandLineMain();
+        cmd.start();
+    }
+}

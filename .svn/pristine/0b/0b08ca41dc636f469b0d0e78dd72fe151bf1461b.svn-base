@@ -1,0 +1,309 @@
+package command;
+
+import static command.InputsLib.*;
+import static generator.GenerujLib.getNahodnyProstredek;
+import java.util.Iterator;
+import java.util.Scanner;
+import kolekce.KolekceException;
+import kolekce.LinSeznam;
+import perzistence.PerzistenceLib;
+import prostredky.*;
+
+/**
+ *
+ * @author Adam_Tomasek
+ */
+public class CommandLineMain {
+
+    LinSeznam<DopravniProstredek> seznam = new LinSeznam<>();
+
+    public CommandLineMain() {
+    }
+
+    //TODO try catche, oprava vkladani
+    private void start() {
+
+        Scanner sc = new Scanner(System.in);
+        System.out.println("Ovládání z řádku.\n");
+        String command = "";
+
+        while (!command.equals("exit")) {
+            System.out.println("\u001B[33m" + "Vložte příkaz." + "\u001B[30m");
+            command = sc.next();
+
+            switch (command) {
+                case "help":
+                case "h":
+                    help();
+                    break;
+
+                case "novy":
+                case "no":
+                    novy();
+                    break;
+
+                case "najdi":
+                case "na":
+                case "n":
+                    najdi();
+                    break;
+
+                case "dej":
+                    dej();
+                    break;
+
+                case "edituj":
+                case "edit":
+                    edituj();
+
+                    break;
+
+                case "vyjmi":
+                    vyjmi();
+                    break;
+
+                case "prvni":
+                case "pr":
+                    prvni();
+                    break;
+
+                case "dalsi":
+                case "da":
+                    dalsi();
+                    break;
+
+                case "posledni":
+                case "po":
+                    posledni();
+                    break;
+
+                case "pocet":
+                    pocet();
+                    break;
+
+                case "obnov":
+                    obnov();
+                    break;
+
+                case "zalohuj":
+                    zalohuj();
+                    break;
+
+                case "vypis":
+                    vypis();
+                    break;
+                case "nactitext":
+                case "nt":
+                    nactiText();
+                    break;
+
+                case "uloztext":
+                case "ut":
+                    ulozText();
+                    break;
+
+                case "generuj":
+                case "g":
+                    generuj();
+                    break;
+
+                case "zrus":
+                    zrus();
+                    break;
+
+                case "exit":
+                    System.out.println("Ukončeno");
+                    break;
+
+                default:
+                    vypisException("Nevalidní vstup.");
+            }
+        }
+    }
+
+    //Pomocne metody
+    private void vloz(DopravniProstredek prostredek) {
+        if (this.seznam.size() == 0) {
+            this.seznam.vlozPrvni(prostredek);
+        } else {
+
+            this.seznam.vlozZaAktualni(prostredek);
+
+        }
+    }
+
+    private DopravniProstredek vytvorProstredek() {
+        DodavkaTyp typ = getTyp();
+
+        String spz = getString("Vložte spz pro prostředek", 5, 30);
+        double hmotnost = getDouble("Vložte hmotnost. (desetinné číslo)",
+                150, 10000);
+        int pocetNaprav = pocetNaprav = getInt("Vlozte počet náprav.", 2, 10);
+
+        switch (typ) {
+            case DODAVKA:
+                return new Dodavka(spz, pocetNaprav, hmotnost);
+            case OSOBNI_AUTOMOBIL:
+                Barva barva = getBarva();
+                return new OsobniAutomobil(spz, barva, pocetNaprav, hmotnost);
+            case NAKLADNI_AUTOMOBIL:
+                return new NakladniAutomobil(spz, pocetNaprav, hmotnost);
+            case TRAKTOR:
+                return new Traktor(spz, pocetNaprav, hmotnost);
+
+        }
+        return null;
+
+    }
+
+    private void vypisAktualni(String mess) {
+        System.out.println(mess + this.seznam.dejAktualni());
+    }
+
+    private void vypisException(String mess) {
+        System.out.println("\u001B[31m" + mess + "\u001B[0m");
+    }
+
+    //Metody ktere volaji prikazy
+    private void help() {
+        System.out.println("help, h - Výpis příkazů\n"
+                + "novy,no - Vytvoř novou instanci a vlož dopravní prostředek za aktuální.\n"
+                + "najdi,na,n - Najdi v seznamu dopravní prostředek podle státní poznávací značky.\n"
+                + "dej - Zobraz aktuální dopravní prostředek v seznamu.\n"
+                + "edituj,edit - Edituj aktuální dopravní prostředek v seznamu.\n"
+                + "vyjmi - Vyjmi aktuální první dopravní prostředek v seznamu.\n"
+                + "prvni,pr - Nastav jako aktuální první dopravní prostředek v seznamu.\n"
+                + "dalsi,da - Přejdi na další dopravní prostředek.\n"
+                + "posledni,po - Přejdi na poslední dopravní prostředek.\n"
+                + "pocet - Zobraz počet položek v seznamu.\n"
+                + "obnov - Obnov seznam dopravních prostředků z binárního souboru\n"
+                + "zalohuj - Zálohuj seznam dopravních prostředků do binárního souboru\n"
+                + "vypis - Zobraz seznam dopravních prostředků.\n"
+                + "nactitext,nt- Načti seznam dopravních prostředků z textového souboru.\n"
+                + "uloztext,ut - Ulož seznam dopravních prostředků do textového souboru.\n"
+                + "generuj,g - Generuj náhodně dopravní prostředky pro testování.\n"
+                + "zrus - Zruš všechny dopravní prostředky v seznamu\n"
+                + "exit - Ukončení programu");
+    }
+
+    private void novy() {
+        vloz(vytvorProstredek());
+        System.out.println("Prostředek vložen.");
+
+    }
+
+    private void najdi() {
+        String pattern = getString("Vložte hledané spz", 5, 30);
+        vypis(pattern);
+    }
+
+    private void dej() {
+        vypisAktualni("Aktuální prvek:\n ");
+    }
+
+    private void edituj() {
+        vypisAktualni("Editujete prvek:\n");
+
+        vloz(vytvorProstredek());
+        this.seznam.odeberAktualni();
+    }
+
+    private void vyjmi() {
+        this.seznam.odeberAktualni();
+        System.out.println("Aktuální prvek odstraněn.");
+    }
+
+    private void prvni() {
+        try {
+            this.seznam.nastavPrvni();
+            System.out.println("První prvek nastaven.");
+            vypisAktualni("Aktuální prvek:\n");
+        } catch (KolekceException e) {
+            vypisException(e.getMessage());
+        }
+
+    }
+
+    private void dalsi() {
+        try {
+            this.seznam.dalsi();
+
+            vypisAktualni("Aktuální prvek:\n");
+        } catch (KolekceException e) {
+            vypisException(e.getMessage());
+        }
+    }
+
+    private void posledni() {
+        try {
+            this.seznam.nastavPosledni();
+            System.out.println("Poslední prvek nastaven.");
+            System.out.println("Aktuální prvek:\n"
+                    + this.seznam.dejAktualni());
+        } catch (KolekceException e) {
+            vypisException(e.getMessage());
+        }
+    }
+
+    private void pocet() {
+
+        System.out.println("Seznam obsahuje "
+                + this.seznam.size() + " prvků.");
+
+    }
+
+    private void obnov() {
+        this.seznam = PerzistenceLib.nactiBin();
+        System.out.println("Záloha nahrána");
+    }
+
+    private void zalohuj() {
+        PerzistenceLib.ulozBin(seznam);
+        System.out.println("Záloha vytvořena");
+    }
+
+    private void vypis() {
+        vypis("");
+    }
+
+    private void vypis(String pattern) {
+        Iterator<DopravniProstredek> iterator = this.seznam.iterator();
+        int counter = 1;
+        while (iterator.hasNext()) {
+            DopravniProstredek next = iterator.next();
+            if (pattern == "" || next.getSpz().equals(pattern)) {
+                System.out.println("[" + counter + "]  " + next);
+            }
+            counter++;
+        }
+
+    }
+
+    private void nactiText() {
+        this.seznam = PerzistenceLib.nactiText();
+        System.out.println("Seznam načten");
+    }
+
+    private void ulozText() {
+        PerzistenceLib.ulozText(seznam);
+        System.out.println("Text uložen");
+    }
+
+    private void generuj() {
+        DopravniProstredek nahodnyProstredek = getNahodnyProstredek();
+
+        vloz(nahodnyProstredek);
+        System.out.println("Vložený prvek:\n" + nahodnyProstredek.toString());
+    }
+
+    private void zrus() {
+
+        this.seznam.zrus();
+        System.out.println("Všechny prvky smazány.");
+    }
+
+    public static void main(String[] args) {
+        CommandLineMain cmd = new CommandLineMain();
+        cmd.start();
+    }
+}

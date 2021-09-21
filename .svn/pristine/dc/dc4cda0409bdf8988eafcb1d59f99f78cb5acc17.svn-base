@@ -1,0 +1,137 @@
+package gui;
+
+import java.util.Iterator;
+import java.util.function.Supplier;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import javafx.collections.ObservableList;
+import javafx.scene.Scene;
+import javafx.scene.control.Alert;
+import javafx.scene.control.ListView;
+import javafx.scene.control.MultipleSelectionModel;
+import javafx.scene.layout.BorderPane;
+import javafx.stage.Stage;
+import kolekce.LinSeznam;
+import prostredky.DopravniProstredek;
+import prostredky.DopravniProstredekKlic;
+import prostredky.ProstredekTyp;
+import sprava.SpravaProstredku;
+
+public class MainFX extends javafx.application.Application {
+
+    private final SpravaProstredku ovladac = new SpravaProstredku();
+
+    private final BorderPane ROOT = new BorderPane();
+
+    private final ProstredkyMapper MAPPER = new ProstredkyMapper(ROOT);
+    private final ListView<String> LIST_VIEW = new ListView<String>();
+    private final ControlPanelVBox VBOX = new ControlPanelVBox(ovladac, MAPPER, ROOT);
+    private final ControlPanelHBox HBOX = new ControlPanelHBox(ovladac, MAPPER, ROOT);
+
+    private final Supplier<MultipleSelectionModel> SEZ_SELECTMOD_SUPP = () -> {
+        return ((ListView<String>) ROOT.getCenter())
+                .getSelectionModel();
+    };
+    private final Supplier<Integer> SEZ_SELECTED_INDEX_SUPP = () -> {
+        return SEZ_SELECTMOD_SUPP.get().getSelectedIndex();
+    };
+
+    private final Supplier<ObservableList<String>> SEZNAM_SUPP = () -> {
+        return ((ListView<String>) ROOT.getCenter()).getItems();
+    };
+
+    public static void main(String[] args) {
+        launch(args);
+    }
+
+    @Override
+    public void start(Stage primaryStage) {
+        primaryStage.setTitle("Správa dopravních prostředků");
+        primaryStage.setMinWidth(500);
+        primaryStage.setMinHeight(350);
+        primaryStage.setScene(new Scene(ROOT));
+        primaryStage.show();
+
+        ovladac.vytvorSeznam(LinSeznam<DopravniProstredek>::new);
+
+        ovladac.nastavErrorLog((t) -> {
+            Alert errorAlert = new Alert(Alert.AlertType.ERROR, t, null);
+            errorAlert.showAndWait();
+        });
+
+        nastavKostru();
+        nastavListView();
+    }
+
+    private void nastavKostru() {
+
+        LIST_VIEW.setId("listView");
+        ROOT.setCenter(LIST_VIEW);
+        ROOT.setRight(VBOX.getVBox());
+        ROOT.setBottom(HBOX.getHBox());
+
+    }
+
+    private void nastavListView() {
+
+        LIST_VIEW.getSelectionModel()
+                .selectedItemProperty()
+                .addListener((observable) -> {
+                    ovladac.nastavKomparator(ProstredkyMapper.ID_COMPARATOR);
+                    prejdiNaPolozku(
+                            ovladac.najdiPolozku(
+                                    new DopravniProstredekKlic(
+                                            dejIdZPrvkuSeznamu(
+                                                    SEZNAM_SUPP.get().get(
+                                                            SEZ_SELECTED_INDEX_SUPP.get()
+                                                    )
+                                            )
+                                    )
+                            )
+                    );
+                });
+
+    }
+
+    private int dejIdZPrvkuSeznamu(String prvekSeznamu) {
+        Matcher matcher = Pattern.compile("id=(\\d+)").matcher(prvekSeznamu);
+        matcher.find();
+
+        return Integer.parseInt(matcher.group(1));
+    }
+
+    private void prejdiNaPolozku(DopravniProstredek hledanaPolozka) {
+        ListView<String> listView = (ListView<String>) ROOT.getCenter();
+        Iterator<DopravniProstredek> iterator = ovladac.iterator();
+
+        if (hledanaPolozka == null) {
+            return;
+        }
+
+        ovladac.prejdiNaPrvniPolozku();
+
+        int seznamCounter = 0;
+        while (iterator.hasNext()) {
+            if (ProstredkyMapper.filtrovaciTyp != ProstredekTyp.NON_FILTER
+                    && ovladac.dejKopiiAktualniPolozky().getTyp()
+                    != ProstredkyMapper.filtrovaciTyp) {
+                ovladac.prejdiNaDalsiPolozku();
+                continue;
+            }
+
+            if (hledanaPolozka.toString()
+                    .equals(listView.getItems()
+                            .get(seznamCounter))) {
+                listView.getSelectionModel().select(seznamCounter);
+                return;
+            }
+
+            seznamCounter++;
+            iterator.next();
+            ovladac.prejdiNaDalsiPolozku();
+
+        }
+
+    }
+
+}

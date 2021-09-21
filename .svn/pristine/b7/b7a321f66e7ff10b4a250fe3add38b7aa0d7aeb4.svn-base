@@ -1,0 +1,100 @@
+/*
+ * To change this license header, choose License Headers in Project Properties.
+ * To change this template file, choose Tools | Templates
+ * and open the template in the editor.
+ */
+package perzistence;
+
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.Iterator;
+import kolekce.LinSeznam;
+import prostredky.DopravniProstredek;
+
+/**
+ *
+ * @author Adam_Tomasek
+ */
+public class PerzistenceLib {
+
+    private static void vypisException(String mess) {
+        System.out.println("\u001B[31m" + mess + "\u001B[0m");
+    }
+
+    private static String seznamNaText(LinSeznam<DopravniProstredek> seznam) {
+        String output = "";
+        Iterator<DopravniProstredek> iterator = seznam.iterator();
+
+        while (iterator.hasNext()) {
+            DopravniProstredek prostredek = iterator.next();
+            String text = prostredek.toString();
+
+            for (String elem : text.split(",")) {
+
+                output += elem.split("=")[1] + ", ";
+            }
+            output += "\n";
+
+        }
+        return output;
+    }
+
+    private static LinSeznam<DopravniProstredek> textNaSeznam(String text) {
+     
+        LinSeznam<DopravniProstredek> seznam = new LinSeznam<>();
+        for (String radek : text.split("\n")) {
+            //TODO generovaní
+        }
+        return seznam;
+    }
+
+    private static String vygenerujSoubor(String cesta) {
+        File soubor = new File(cesta.toString());
+
+        try {
+            if (soubor.createNewFile()) {
+                System.out.println("Nový soubor vegenerován");
+            }
+        } catch (IOException e) {
+            vypisException("Ve vytváření souboru nastala chyba - "
+                    + e.getMessage());
+
+        }
+        return soubor.getAbsolutePath();
+
+    }
+
+    public static void ulozText(LinSeznam<DopravniProstredek> seznam) {
+        String text = seznamNaText(seznam);
+        String cesta = vygenerujSoubor("src/perzistence/zalohy/txtZaloha.txt");
+
+        try {
+            FileWriter writer = new FileWriter(cesta);
+            writer.write(text);
+            writer.close();
+        } catch (IOException e) {
+            vypisException("V ukládání nastala chyba - " + e.getMessage());
+        }
+    }
+
+    public static LinSeznam<DopravniProstredek> nactiText() {
+        String cesta = "src/perzistence/zalohy/txtZaloha.txt";
+        String text = "";
+        try {
+            FileReader reader = new FileReader(cesta);
+            BufferedReader stream = new BufferedReader(reader);
+            String radek;
+            while ((radek = stream.readLine()) != null) {
+                text+=radek;
+            }
+            
+            reader.close();
+        } catch (IOException e) {
+            vypisException("V načítání nastala chyba - " + e.getMessage());
+        }
+        return textNaSeznam(text);
+    }
+}

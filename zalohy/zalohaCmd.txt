@@ -1,0 +1,13 @@
+0,osobní automobil,e8ho3To84aO8phPA4x8lLDSrR,1173.75,červená,10,;
+1,nákladní automobil,idxPqba10WYHr4WZ14z40Zb,8026.40,8,;
+2,traktor,98bSV1nCaVld3769PMwiHAMLbX64g,5116.07,3,;
+3,osobní automobil,VT45TKxG6wS46O,1530.76,černá,3,;
+4,osobní automobil,1B26WnsfZN9zVSY4Bzm0Ulr06Mp,1252.98,černá,8,;
+5,dodávka,2BT7DXks,4410.14,5,;
+6,dodávka,9CZhQb0t0RCO1s6y,7778.60,4,;
+7,osobní automobil,52Cg4aL5D4o9eo1,7802.11,modrá,5,;
+8,dodávka,mW2UGEc0XJ1j0vu9RBh4583MOW,7679.45,10,;
+9,dodávka,Pu3BLnkCzw25D8fFeNOJb,5114.42,8,;
+10,nákladní automobil,eGSn6xDBZLnlsSxcgy,481.52,3,;
+11,traktor,1F9GC4Z4luHgUpsHtN4,6706.86,10,;
+12,nákladní automobil,8i9s9K9iaS9V7g1,4667.95,8,;

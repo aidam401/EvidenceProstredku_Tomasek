@@ -1,0 +1,234 @@
+package command;
+
+import static command.Keyboard.*;
+import java.util.Comparator;
+import java.util.Scanner;
+import java.util.function.Consumer;
+import kolekce.LinSeznam;
+import static perzistence.PerzistenceLib.mapperInput;
+import static perzistence.PerzistenceLib.mapperOutput;
+import prostredky.*;
+import sprava.SpravaProstredku;
+
+/**
+ *
+ * @author Adam_Tomasek
+ */
+public class CommandLineMain {
+
+    SpravaProstredku ovladac = new SpravaProstredku();
+
+    private final String BIN_ZALOHA_CESTA = "zalohy/zalohaCmd.bin";
+    private final String TXT_ZALOHA_CESTA = "zalohy/zalohaCmd.txt";
+    private final int GEN_POCET = 10;
+
+    private static Consumer<DopravniProstredek> writer = (t)
+            -> System.out.println(t);
+
+    private static final Comparator<? super DopravniProstredek> SPZ_COMPARATOR
+            = (o1, o2) -> {
+                return o1.getSpz().equals(o2.getSpz()) ? 0 : -1;
+            };
+    private static final Comparator<? super DopravniProstredek> ID_COMPARATOR
+            = (o1, o2) -> {
+
+                return o1.getId() == o2.getId() ? 0 : -1;
+            };
+
+    public CommandLineMain() {
+        ovladac.vytvorSeznam(LinSeznam<DopravniProstredek>::new);
+        //ovladac.vytvorSeznam(() -> new LinSeznam<DopravniProstredek>());
+        ovladac.nastavKomparator(SPZ_COMPARATOR);
+        ovladac.nastavErrorLog(System.out::println);
+    }
+
+    private void start() {
+
+        Scanner sc = new Scanner(System.in);
+        System.out.println("Ovládání z řádku.\n");
+        String command = "";
+
+        while (!command.equals("exit")) {
+            System.out.println("\u001B[33m" + "Vložte příkaz." + "\u001B[30m");
+            command = sc.next();
+
+            switch (command) {
+                case "help":
+                case "h":
+                    help();
+                    break;
+
+                case "novy":
+                case "no":
+                    this.ovladac.vlozPolozku(vytvorProstredek());
+                    System.out.println("Prostředek vložen.");
+                    break;
+
+                case "najdi":
+                case "na":
+                case "n":
+                    DopravniProstredekKlic klic;
+                    if (getInt("Pro hledání podle id zadejte 1, pro "
+                            + "hledání podle spz 0.", 0, 1) == 1) {
+                        ovladac.nastavKomparator(ID_COMPARATOR);
+                        klic = new DopravniProstredekKlic(
+                                getInt("Vložte id pro prostředek", 0, 3000)
+                        );
+                    } else {
+                        ovladac.nastavKomparator(SPZ_COMPARATOR);
+                        klic = new DopravniProstredekKlic(
+                                getString("Vložte spz pro prostředek", 5, 30)
+                        );
+                    }
+
+                    DopravniProstredek vysledek = this.ovladac.najdiPolozku(
+                            klic);
+
+                    if (vysledek == null) {
+                        System.out.println("Hledaný prvek se"
+                                + " v seznamu nenachází.");
+                    } else {
+                        System.out.println("Hledaný prvek je:");
+                        writer.accept(vysledek);
+                    }
+
+                    break;
+
+                case "dej":
+                    System.out.println("Aktuální prvek:");
+                    writer.accept(this.ovladac.dejKopiiAktualniPolozky());
+                    break;
+
+                case "edituj":
+                case "edit":
+                    System.out.println("Editujete prvek:");
+                    writer.accept(this.ovladac.dejKopiiAktualniPolozky());
+                    this.ovladac.editujAktualniPolozku(new Editor());
+                    break;
+
+                case "vyjmi":
+                    this.ovladac.vyjmiAktualniPolozku();
+                    System.out.println("Aktuální prvek odstraněn.");
+                    break;
+
+                case "prvni":
+                case "pr":
+                    this.ovladac.prejdiNaPrvniPolozku();
+                    System.out.println("První prvek nastaven.");
+                    break;
+
+                case "dalsi":
+                case "da":
+                    this.ovladac.prejdiNaDalsiPolozku();
+                    System.out.println("Další prvek nastaven.");
+                    break;
+
+                case "posledni":
+                case "po":
+                    this.ovladac.prejdiNaPosledniPolozku();
+                    System.out.println("Poslední prvek nastaven.");
+                    break;
+
+                case "pocet":
+                    System.out.println("Seznam obsahuje "
+                            + this.ovladac.dejAktualniPocetPolozek()
+                            + " prvků.");
+                    break;
+
+                case "obnov":
+                    this.ovladac.nactiZeSouboru(BIN_ZALOHA_CESTA);
+                    System.out.println("Záloha nahrána");
+                    break;
+
+                case "zalohuj":
+                    this.ovladac.ulozDoSouboru(BIN_ZALOHA_CESTA);
+                    System.out.println("Záloha vytvořena");
+                    break;
+
+                case "vypis":
+                    this.ovladac.vypis(writer);
+                    break;
+
+                case "nactitext":
+                case "nt":
+                    this.ovladac.nactiTextSoubor(TXT_ZALOHA_CESTA, mapperInput);
+                    break;
+
+                case "uloztext":
+                case "ut":
+                    this.ovladac.ulozTextSoubor(TXT_ZALOHA_CESTA, mapperOutput);
+                    break;
+
+                case "generuj":
+                case "g":
+                    this.ovladac.generujData(GEN_POCET);
+                    System.out.println("Vygenerováno: " + GEN_POCET + " prvků.");
+                    break;
+
+                case "zrus":
+                    this.ovladac.zrus();
+                    System.out.println("Seznam smazán");
+                    break;
+
+                case "exit":
+                    System.out.println("Ukončeno");
+                    break;
+
+                default:
+                    System.out.println("\u001B[31m"
+                            + "Nevalidní vstup."
+                            + "\u001B[0m");
+            }
+        }
+    }
+
+    private DopravniProstredek vytvorProstredek() {
+        ProstredekTyp typ = getTyp();
+
+        String spz = getString("Vložte spz pro prostředek", 5, 30);
+        double hmotnost = getDouble("Vložte hmotnost. (desetinné číslo)",
+                150, 10000);
+        int pocetNaprav = getInt("Vlozte počet náprav.", 2, 10);
+
+        switch (typ) {
+            case DODAVKA:
+                return new Dodavka(spz, pocetNaprav, hmotnost);
+            case OSOBNI_AUTOMOBIL:
+                Barva barva = getBarva();
+                return new OsobniAutomobil(spz, barva, pocetNaprav, hmotnost);
+            case NAKLADNI_AUTMOBIL:
+                return new NakladniAutomobil(spz, pocetNaprav, hmotnost);
+            case TRAKTOR:
+                return new Traktor(spz, pocetNaprav, hmotnost);
+
+        }
+        return null;
+
+    }
+
+    private void help() {
+        System.out.println("help, h - Výpis příkazů\n"
+                + "novy,no - Vytvoř novou instanci a vlož dopravní prostředek za aktuální.\n"
+                + "najdi,na,n - Najdi v seznamu dopravní prostředek podle státní poznávací značky.\n"
+                + "dej - Zobraz aktuální dopravní prostředek v seznamu.\n"
+                + "edituj,edit - Edituj aktuální dopravní prostředek v seznamu.\n"
+                + "vyjmi - Vyjmi aktuální první dopravní prostředek v seznamu.\n"
+                + "prvni,pr - Nastav jako aktuální první dopravní prostředek v seznamu.\n"
+                + "dalsi,da - Přejdi na další dopravní prostředek.\n"
+                + "posledni,po - Přejdi na poslední dopravní prostředek.\n"
+                + "pocet - Zobraz počet položek v seznamu.\n"
+                + "obnov - Obnov seznam dopravních prostředků z binárního souboru\n"
+                + "zalohuj - Zálohuj seznam dopravních prostředků do binárního souboru\n"
+                + "vypis - Zobraz seznam dopravních prostředků.\n"
+                + "nactitext,nt- Načti seznam dopravních prostředků z textového souboru.\n"
+                + "uloztext,ut - Ulož seznam dopravních prostředků do textového souboru.\n"
+                + "generuj,g - Generuj náhodně dopravní prostředky pro testování.\n"
+                + "zrus - Zruš všechny dopravní prostředky v seznamu\n"
+                + "exit - Ukončení programu");
+    }
+
+    public static void main(String[] args) {
+        CommandLineMain cmd = new CommandLineMain();
+        cmd.start();
+    }
+}

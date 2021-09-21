@@ -1,0 +1,44 @@
+package prostredky;
+
+/**
+ *
+ * @author karel@simerda.cz
+ */
+public class Traktor extends DopravniProstredek {
+
+    private int pocetNaprav;
+    private int id;
+
+    public Traktor(String spz, double hmotnost) {
+        super(ProstredekTyp.TRAKTOR, hmotnost, spz);
+        this.id = DopravniProstredek.counter;
+    }
+
+    public Traktor(String spz, int pocetNaprav, double hmotnost) {
+        this(spz, hmotnost);
+        this.pocetNaprav = pocetNaprav;
+              this.id = DopravniProstredek.counter;
+    }
+
+    public int getPocetNaprav() {
+        return pocetNaprav;
+    }
+
+    public void setPocetNaprav(int pocetNaprav) {
+        this.pocetNaprav = pocetNaprav;
+    }
+
+    @Override
+    public String toString() {
+        return super.toString() + ", pocetNaprav=" + pocetNaprav;
+    }
+
+    @Override
+    public Traktor clone() throws CloneNotSupportedException {
+        if (this.pocetNaprav != 0) {
+            return new Traktor(this.spz, this.hmotnost);
+        }
+        return new Traktor(this.spz, this.pocetNaprav, this.hmotnost);
+    }
+
+}

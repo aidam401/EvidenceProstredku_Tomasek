@@ -1,0 +1,106 @@
+package prostredky;
+
+import java.io.Serializable;
+import java.util.Locale;
+import java.util.Objects;
+
+public abstract class DopravniProstredek implements Serializable, 
+        //Comparable<DopravniProstredek>, 
+        Cloneable {
+
+    public static void resetujCounter() {
+        DopravniProstredek.counter = 0;
+    }
+    public static void nastavCounter(int pocet){
+        DopravniProstredek.counter = pocet;
+    
+    }
+    private final ProstredekTyp typ;
+    protected double hmotnost;
+    protected String spz;
+    private static int counter = 0;
+    private int id;
+
+    public DopravniProstredek(ProstredekTyp typ, int id, String spz) {
+        this.typ = typ;
+        this.id = id;
+        this.spz = spz;
+    }
+
+    public DopravniProstredek(ProstredekTyp typ, double hmotnost, String spz) {
+        this.typ = typ;
+        this.hmotnost = hmotnost;
+        this.spz = spz;
+        this.id = counter++;
+    }
+
+    public int getId() {
+        return id;
+    }
+
+    public void setId(int id) {
+        this.id = id;
+    }
+    
+    public ProstredekTyp getTyp() {
+        return typ;
+    }
+
+    public double getHmotnost() {
+        return hmotnost;
+    }
+
+    public void setHmotnost(double hmotnost) {
+        this.hmotnost = hmotnost;
+    }
+
+    public String getSpz() {
+        return spz;
+    }
+
+    public void setSpz(String spz) {
+        this.spz = spz;
+    }
+
+    @Override
+    public String toString() {
+        return String.format(Locale.US, "id=%d,typ=%s, SPZ=%s, hmotnost=%6.2f",
+                id, typ, spz, hmotnost);
+    }
+
+    @Override
+    public int hashCode() {
+        int hash = 3;
+        hash = 83 * hash + Objects.hashCode(this.typ);
+        hash = 83 * hash + (int) (Double.doubleToLongBits(this.hmotnost) ^ (Double.doubleToLongBits(this.hmotnost) >>> 32));
+        hash = 83 * hash + Objects.hashCode(this.spz);
+        return hash;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
+        final DopravniProstredek other = (DopravniProstredek) obj;
+        if (Double.doubleToLongBits(this.hmotnost) != Double.doubleToLongBits(other.hmotnost)) {
+            return false;
+        }
+        if (!Objects.equals(this.spz, other.spz)) {
+            return false;
+        }
+        if (this.typ != other.typ) {
+            return false;
+        }
+        return true;
+    }
+
+    @Override
+    abstract public Object clone() throws CloneNotSupportedException;
+}

@@ -1,0 +1,251 @@
+package gui;
+
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import javafx.scene.Node;
+import javafx.scene.control.Button;
+import javafx.scene.control.ComboBox;
+import javafx.scene.control.Label;
+import javafx.scene.control.ListView;
+import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.VBox;
+import perzistence.PerzistenceLib;
+import prostredky.Dodavka;
+import prostredky.DopravniProstredek;
+import prostredky.DopravniProstredekKlic;
+import prostredky.ProstredekTyp;
+import sprava.SpravaProstredku;
+
+/**
+ *
+ * @author Adam_Tomasek
+ */
+public class ControlPanelHBox {
+
+    private final HBox HBox = new HBox();
+    private SpravaProstredku ovladac;
+    private ProstredkyMapper mapper;
+    private BorderPane root;
+    private final String BIN_ZALOHA_CESTA = "zalohy/zaloha.bin";
+    private final String TXT_ZALOHA_CESTA = "zalohy/prostredky.txt";
+
+    private final Button GENERUJ_BUTTON = new Button("Generuj");
+    private final Button ULOZ_BUTTON = new Button("Ulož");
+    private final Button NACTI_BUTTON = new Button("Načti");
+    private final ComboBox NOVY_COMBO = new ComboBox();
+    private final ComboBox FILTER_COMBO = new ComboBox();
+    private final ComboBox NAJDI_COMBO = new ComboBox();
+    private final Button ZALOHUJ_BUTTON = new Button("Zálohuj");
+    private final Button OBNOV_BUTTON = new Button("Obnov");
+    private final Button ZRUS_BUTTON = new Button("Zruš filtraci");
+
+    public ControlPanelHBox(SpravaProstredku ovladac,
+            ProstredkyMapper mapper,
+            BorderPane root) {
+        this.ovladac = ovladac;
+        this.mapper = mapper;
+        this.root = root;
+        nactiMe();
+    }
+
+    private void nactiMe() {
+        nastavKostru();
+        nastavTlačítka();
+        nastavComboboxy();
+
+    }
+
+    private void nastavKostru() {
+
+        HBox.getChildren().addAll(
+                new Node[]{
+                    GENERUJ_BUTTON,
+                    ULOZ_BUTTON,
+                    NACTI_BUTTON,
+                    new Label("Novy:"),
+                    NOVY_COMBO,
+                    new Label("Filtr:"),
+                    FILTER_COMBO,
+                    NAJDI_COMBO,
+                    ZALOHUJ_BUTTON,
+                    OBNOV_BUTTON,
+                    ZRUS_BUTTON
+
+                }
+        );
+
+    }
+
+    private void nastavComboboxy() {
+        // Najdi combo
+        NAJDI_COMBO.getItems().addAll(
+                "Na základě id",
+                "Na základě spz"
+        );
+        NAJDI_COMBO.setValue("ID/SPZ");
+        NAJDI_COMBO.setOnAction((event) -> {
+            String vybrane = (String) NAJDI_COMBO
+                    .getSelectionModel()
+                    .getSelectedItem();
+            switch (vybrane) {
+                case "Na základě id":
+                    DialogTools.getNajdiId(ovladac.dejAktualniPocetPolozek())
+                            .ifPresent((id) -> {
+                                ovladac.nastavKomparator(
+                                        ProstredkyMapper.ID_COMPARATOR);
+                                prejdiNaPolozku(ovladac.najdiPolozku(
+                                        new DopravniProstredekKlic(id)));
+                            });
+
+                    break;
+                case "Na základě spz":
+                    DialogTools.getNajdiSpz()
+                            .ifPresent((spz) -> {
+                                ovladac.nastavKomparator(
+                                        ProstredkyMapper.SPZ_COMPARATOR);
+                                prejdiNaPolozku(ovladac.najdiPolozku(
+                                        new DopravniProstredekKlic(spz)));
+                            });
+                    break;
+            }
+        });
+        // Filtruj combo
+        FILTER_COMBO.getItems().addAll(
+                ProstredekTyp.getProstredkyFilter()
+        );
+        FILTER_COMBO.setValue("Vyberte filtr");
+        FILTER_COMBO.setOnAction((event) -> {
+            ProstredekTyp vybrane = (ProstredekTyp) FILTER_COMBO
+                    .getSelectionModel()
+                    .getSelectedItem();
+            mapper.nastavFiltr(vybrane);
+            zobraz();
+
+        });
+
+        // Novy combo
+        NOVY_COMBO.getItems().addAll(
+                "Dodávka",
+                "Nákladní automobil",
+                "Osobní Automobil",
+                "Traktor"
+        );
+        NOVY_COMBO.setValue("Nový prostředek");
+        NOVY_COMBO.setOnAction((event) -> {
+            String vybrane = (String) NOVY_COMBO
+                    .getSelectionModel()
+                    .getSelectedItem();
+
+            switch (vybrane) {
+                case "Dodávka":
+                    new DialogDodavka().vratNovouDodavku().ifPresent((prostredek) -> {
+                        ovladac.vlozPolozku(prostredek);
+                        zobraz();
+                    });
+                    break;
+                case "Nákladní automobil":
+                    new DialogNakladniAutomobil().vratNovyNakladniAutomobil().ifPresent((prostredek) -> {
+                        ovladac.vlozPolozku(prostredek);
+                        zobraz();
+                    });
+                    break;
+                case "Osobní Automobil":
+                    new DialogOsobniAuto().vratNoveOsobniAuto().ifPresent((prostredek) -> {
+                        ovladac.vlozPolozku(prostredek);
+                        zobraz();
+                    });
+                    break;
+                case "Traktor":
+                    new DialogTraktor().vratNovyTraktor().ifPresent((prostredek) -> {
+                        ovladac.vlozPolozku(prostredek);
+                        zobraz();
+                    });
+                    break;
+            }
+        });
+    }
+
+    private void nastavTlačítka() {
+
+        GENERUJ_BUTTON.setOnAction((event) -> {
+            Optional<Integer> pocet = DialogTools.getGeneratorInt();
+            pocet.ifPresent((poc) -> {
+                ovladac.generujData(poc);
+                zobraz();
+                ((ListView<String>) root
+                        .getCenter())
+                        .getSelectionModel()
+                        .selectFirst();
+            });
+        });
+        ULOZ_BUTTON.setOnAction((event) -> {
+            ovladac.ulozTextSoubor(TXT_ZALOHA_CESTA,
+                    PerzistenceLib.mapperOutput);
+        });
+
+        NACTI_BUTTON.setOnAction((event) -> {
+            ovladac.nactiTextSoubor(TXT_ZALOHA_CESTA,
+                    PerzistenceLib.mapperInput);
+            zobraz();
+        });
+        ZALOHUJ_BUTTON.setOnAction((event) -> {
+            ovladac.ulozDoSouboru(BIN_ZALOHA_CESTA);
+        });
+        OBNOV_BUTTON.setOnAction((event) -> {
+            ovladac.nactiZeSouboru(BIN_ZALOHA_CESTA);
+            zobraz();
+        });
+        ZRUS_BUTTON.setOnAction((event) -> {
+            FILTER_COMBO.getSelectionModel().selectLast();
+            mapper.smazFiltr();
+            zobraz();
+        });
+
+    }
+
+    public HBox getHBox() {
+        return HBox;
+    }
+
+    private void zobraz() {
+         System.out.println("acaca");
+        ListView<String> listView = (ListView<String>) root.getCenter();
+        listView.getItems().clear();
+        ovladac.vypis(mapper.writer);
+        
+       
+    }
+
+    private void prejdiNaPolozku(DopravniProstredek hledanaPolozka) {
+        ListView<String> listView = (ListView<String>) root.getCenter();
+        ObservableList<String> seznam = listView.getItems();
+
+        if (hledanaPolozka == null) {
+            return;
+        }
+        ovladac.prejdiNaPrvniPolozku();
+        int counter = 0;
+        while (counter != seznam.size()) {
+            if (ProstredkyMapper.filtrovaciTyp
+                    != ProstredekTyp.NON_FILTER
+                    && ovladac.dejKopiiAktualniPolozky().getTyp()
+                    != ProstredkyMapper.filtrovaciTyp) {
+                ovladac.prejdiNaDalsiPolozku();
+                continue;
+            }
+            if (hledanaPolozka.toString().equals(seznam.get(counter))) {
+                listView.getSelectionModel().select(counter);
+                return;
+            }
+            counter++;
+            ovladac.prejdiNaDalsiPolozku();
+        }
+    }
+
+}

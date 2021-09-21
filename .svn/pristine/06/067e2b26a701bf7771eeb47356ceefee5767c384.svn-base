@@ -1,0 +1,80 @@
+package gui;
+
+import static command.Keyboard.getBarva;
+import java.util.Comparator;
+import java.util.Optional;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import javafx.scene.control.ListView;
+import javafx.scene.layout.BorderPane;
+import prostredky.DopravniProstredek;
+import prostredky.ProstredekTyp;
+
+
+/**
+ *
+ * @author Adam_Tomasek
+ */
+public class ProstredkyMapper {
+
+    private BorderPane root;
+    public static ProstredekTyp filtrovaciTyp = ProstredekTyp.NON_FILTER;
+
+    public ProstredkyMapper(BorderPane root) {
+        this.root = root;
+    }
+
+    public void smazFiltr() {
+        filtrovaciTyp = ProstredekTyp.NON_FILTER;
+    }
+
+    public void nastavFiltr(ProstredekTyp filtrovaciTyp) {
+        ProstredkyMapper.filtrovaciTyp = filtrovaciTyp;
+    }
+
+    public Consumer<DopravniProstredek> writer = (prostredek) -> {
+        if (filtrovaciTyp == ProstredekTyp.NON_FILTER) {
+            ((ListView<String>) root.getCenter()).getItems()
+                    .add(prostredek.toString());
+        } else if (prostredek.getTyp() == filtrovaciTyp) {
+            ((ListView<String>) root.getCenter()).getItems()
+                    .add(prostredek.toString());
+        }
+    };
+
+    public static final Function<DopravniProstredek, DopravniProstredek> EDITOR
+            = (prostredek) -> {
+                Optional<DopravniProstredek> output = null;
+                switch (prostredek.getTyp()) {
+                    case DODAVKA:
+                        output = new DialogDodavka().vratNovouDodavku();
+                        break;
+                    case OSOBNI_AUTOMOBIL:
+                        output = new DialogOsobniAuto().vratNoveOsobniAuto();
+                        break;
+                    case NAKLADNI_AUTMOBIL:
+                        output = new DialogNakladniAutomobil().vratNovyNakladniAutomobil();
+                        break;
+                    case TRAKTOR:
+                        output = new DialogTraktor().vratNovyTraktor();
+                        break;
+                }
+                if (output.isPresent()) {
+                    DopravniProstredek novyProstredek = output.get();
+                    novyProstredek.setId(prostredek.getId());
+                    return novyProstredek;
+                } else {
+                    return prostredek;
+                }
+            };
+
+    public static final Comparator<? super DopravniProstredek> SPZ_COMPARATOR
+            = (o1, o2) -> {
+                return o1.getSpz().equals(o2.getSpz()) ? 0 : -1;
+            };
+    public static final Comparator<? super DopravniProstredek> ID_COMPARATOR
+            = (o1, o2) -> {
+                return o1.getId() == o2.getId() ? 0 : -1;
+            };
+
+}

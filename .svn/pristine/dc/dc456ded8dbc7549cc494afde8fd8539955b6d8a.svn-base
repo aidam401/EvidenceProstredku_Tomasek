@@ -1,0 +1,217 @@
+package gui;
+
+import java.util.Iterator;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import javafx.collections.ObservableList;
+import javafx.scene.Node;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.control.ListView;
+import javafx.scene.control.MultipleSelectionModel;
+import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.VBox;
+import prostredky.DopravniProstredek;
+import prostredky.DopravniProstredekKlic;
+import prostredky.ProstredekTyp;
+import sprava.SpravaProstredku;
+
+/**
+ *
+ * @author Adam_Tomasek
+ */
+public class ControlPanelVBox {
+
+    private final VBox VBOX = new VBox();
+    private SpravaProstredku ovladac;
+    private ProstredkyMapper mapper;
+    private BorderPane root;
+
+    private final Button PRVNI_BUTTON = new Button("První");
+    private final Button MINULY_BUTTON = new Button("Předchozí");
+    private final Button DALSI_BUTTON = new Button("Další");
+    private final Button POSLEDNI_BUTTON = new Button("Poslední");
+    private final Button EDITUJ_BUTTON = new Button("Edituj");
+    private final Button VYJMI_BUTTON = new Button("Vyjmi");
+    private final Button CLEAR_BUTTON = new Button("Clear");
+
+    private final Supplier<ObservableList<String>> SEZNAM_SUPP = () -> {
+        return ((ListView<String>) root.getCenter()).getItems();
+    };
+
+    private final Supplier<MultipleSelectionModel> SEZ_SELECTMOD_SUPP = () -> {
+        return ((ListView<String>) root.getCenter())
+                .getSelectionModel();
+    };
+    private final Supplier<Integer> SEZ_SELECTED_INDEX_SUPP = () -> {
+        return SEZ_SELECTMOD_SUPP.get().getSelectedIndex();
+    };
+
+    public ControlPanelVBox(SpravaProstredku ovladac,
+            ProstredkyMapper mapper, BorderPane root) {
+        this.ovladac = ovladac;
+        this.mapper = mapper;
+        this.root = root;
+        nactiMe();
+    }
+
+    private void nactiMe() {
+        nastavKostru();
+        nastavTlacitka();
+       
+    }
+
+    private void nastavKostru() {
+
+        VBOX.getChildren().addAll(
+                new Node[]{
+                    new Label("Procházení"),
+                    PRVNI_BUTTON,
+                    MINULY_BUTTON,
+                    DALSI_BUTTON,
+                    POSLEDNI_BUTTON,
+                    new Label("Příkazy"),
+                    EDITUJ_BUTTON,
+                    VYJMI_BUTTON,
+                    CLEAR_BUTTON
+
+                }
+        );
+
+    }
+
+  
+
+    private void nastavTlacitka() {
+
+        PRVNI_BUTTON.setOnAction((event) -> {
+            ovladac.nastavKomparator(ProstredkyMapper.ID_COMPARATOR);
+            prejdiNaPolozku(
+                    ovladac.najdiPolozku(
+                            new DopravniProstredekKlic(
+                                    dejIdZPrvkuSeznamu(
+                                            SEZNAM_SUPP.get().get(0)
+                                    )
+                            )
+                    )
+            );
+        });
+
+        MINULY_BUTTON.setOnAction((event) -> {
+            ovladac.nastavKomparator(ProstredkyMapper.ID_COMPARATOR);
+            prejdiNaPolozku(
+                    ovladac.najdiPolozku(
+                            new DopravniProstredekKlic(
+                                    dejIdZPrvkuSeznamu(
+                                            SEZNAM_SUPP.get().get(
+                                                    SEZ_SELECTED_INDEX_SUPP.get()
+                                                    - 1)
+                                    )
+                            )
+                    )
+            );
+        });
+
+        DALSI_BUTTON.setOnAction((event) -> {
+            System.out.println(SEZ_SELECTED_INDEX_SUPP.get());
+            ovladac.nastavKomparator(ProstredkyMapper.ID_COMPARATOR);
+            prejdiNaPolozku(
+                    ovladac.najdiPolozku(
+                            new DopravniProstredekKlic(
+                                    dejIdZPrvkuSeznamu(
+                                            SEZNAM_SUPP.get().get(
+                                                    SEZ_SELECTED_INDEX_SUPP.get()
+                                                    + 1)
+                                    )
+                            )
+                    )
+            );
+
+        });
+        POSLEDNI_BUTTON.setOnAction((event) -> {
+            ovladac.nastavKomparator(ProstredkyMapper.ID_COMPARATOR);
+            ovladac.prejdiNaPosledniPolozku();
+            prejdiNaPolozku(
+                    ovladac.najdiPolozku(
+                            new DopravniProstredekKlic(ovladac
+                                    .dejKopiiAktualniPolozky()
+                                    .getId())
+                    )
+            );
+
+        });
+        EDITUJ_BUTTON.setOnAction((event) -> {
+            ovladac.editujAktualniPolozku(ProstredkyMapper.EDITOR);
+            zobraz();
+        });
+        VYJMI_BUTTON.setOnAction((event) -> {
+            ovladac.vyjmiAktualniPolozku();
+            MINULY_BUTTON.fire();
+            zobraz();
+        });
+
+        CLEAR_BUTTON.setOnAction((event) -> {
+            ovladac.zrus();
+            zobraz();
+        });
+
+    }
+
+    public VBox getVBox() {
+        return VBOX;
+    }
+
+    private void zobraz() {
+
+        ListView<String> listView = (ListView<String>) root.getCenter();
+        listView.getItems().clear();
+        ovladac.vypis(mapper.writer);
+        //PRVNI_BUTTON.fire();
+        System.out.println("dabaca");
+
+    }
+
+    private int dejIdZPrvkuSeznamu(String prvekSeznamu) {
+        Matcher matcher = Pattern.compile("id=(\\d+)").matcher(prvekSeznamu);
+        matcher.find();
+
+        return Integer.parseInt(matcher.group(1));
+    }
+
+    private void prejdiNaPolozku(DopravniProstredek hledanaPolozka) {
+        ListView<String> listView = (ListView<String>) root.getCenter();
+        Iterator<DopravniProstredek> iterator = ovladac.iterator();
+
+        if (hledanaPolozka == null) {
+            return;
+        }
+
+        ovladac.prejdiNaPrvniPolozku();
+
+        int seznamCounter = 0;
+        while (iterator.hasNext()) {
+            if (ProstredkyMapper.filtrovaciTyp != ProstredekTyp.NON_FILTER
+                    && ovladac.dejKopiiAktualniPolozky().getTyp()
+                    != ProstredkyMapper.filtrovaciTyp) {
+                ovladac.prejdiNaDalsiPolozku();
+                continue;
+            }
+
+            if (hledanaPolozka.toString()
+                    .equals(listView.getItems()
+                            .get(seznamCounter))) {
+                listView.getSelectionModel().select(seznamCounter);
+                return;
+            }
+
+            seznamCounter++;
+            iterator.next();
+            ovladac.prejdiNaDalsiPolozku();
+
+        }
+
+    }
+}
